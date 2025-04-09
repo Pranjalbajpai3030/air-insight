@@ -3,7 +3,7 @@ import { AQIData, AQICategory, CityRanking, CountryData, HotspotData } from "./t
 import { getAQICategory } from "./mockData";
 
 const API_KEY = "AIzaSyCAVwsants4jEMp-rt2nUf47QIEZ5n-CR4";
-const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent";
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
 
 interface GeminiResponse {
   candidates: {
