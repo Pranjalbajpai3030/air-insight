@@ -1,10 +1,9 @@
-
 import { toast } from "sonner";
 import { AQIData, AQICategory, CityRanking, CountryData, HotspotData } from "./types";
 import { getAQICategory } from "./mockData";
 
 const API_KEY = "AIzaSyCAVwsants4jEMp-rt2nUf47QIEZ5n-CR4";
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent";
 
 interface GeminiResponse {
   candidates: {
@@ -51,7 +50,6 @@ const fetchFromGemini = async (prompt: string): Promise<string> => {
   }
 };
 
-// Function to parse AQI data from Gemini response
 export const fetchAQIData = async (): Promise<AQIData[]> => {
   try {
     const prompt = `Provide real-time air quality data for major Indian cities in this exact JSON format:
@@ -73,23 +71,19 @@ Include data for at least 15 cities across different states, with realistic AQI 
 
     const responseText = await fetchFromGemini(prompt);
     
-    // Parse and enhance the data
     const parsedData = JSON.parse(responseText) as Omit<AQIData, "category">[];
     
-    // Add category based on AQI
     return parsedData.map(city => ({
       ...city,
       category: getAQICategory(city.aqi)
     }));
   } catch (error) {
     console.error("Error fetching AQI data:", error);
-    // Fallback to mock data
     const { indiaAQIData } = await import("./mockData");
     return indiaAQIData;
   }
 };
 
-// Function to fetch city rankings
 export const fetchCityRankings = async (): Promise<{ topCities: CityRanking[], bottomCities: CityRanking[] }> => {
   try {
     const prompt = `Provide rankings of Indian cities based on air quality in this exact JSON format:
@@ -109,7 +103,6 @@ Include 10 cities for each category. Top cities should have the best (lowest) AQ
       bottomCities: Omit<CityRanking, "category">[]
     };
     
-    // Add category based on AQI
     return {
       topCities: parsedData.topCities.map(city => ({
         ...city,
@@ -122,13 +115,11 @@ Include 10 cities for each category. Top cities should have the best (lowest) AQ
     };
   } catch (error) {
     console.error("Error fetching city rankings:", error);
-    // Fallback to mock data
     const { topCities, bottomCities } = await import("./mockData");
     return { topCities, bottomCities };
   }
 };
 
-// Function to fetch country comparison data
 export const fetchCountriesData = async (): Promise<CountryData[]> => {
   try {
     const prompt = `Provide air quality comparison data for India, China, USA, UK, and Germany in this exact JSON format:
@@ -148,13 +139,11 @@ Include data for years 2018 through 2023 for each country with realistic polluti
     return parsedData;
   } catch (error) {
     console.error("Error fetching countries data:", error);
-    // Fallback to mock data
     const { countriesData } = await import("./mockData");
     return countriesData;
   }
 };
 
-// Function to fetch hotspot data
 export const fetchHotspotData = async (): Promise<HotspotData[]> => {
   try {
     const prompt = `Provide data for air pollution hotspots in India in this exact JSON format:
@@ -174,20 +163,17 @@ Include data for at least 10 pollution hotspots with realistic coordinates in In
     const responseText = await fetchFromGemini(prompt);
     const parsedData = JSON.parse(responseText) as Omit<HotspotData, "category">[];
     
-    // Add category based on AQI
     return parsedData.map(hotspot => ({
       ...hotspot,
       category: getAQICategory(hotspot.aqi)
     }));
   } catch (error) {
     console.error("Error fetching hotspot data:", error);
-    // Fallback to mock data
     const { hotspotData } = await import("./mockData");
     return hotspotData;
   }
 };
 
-// Function to fetch SDG alignment data
 export const fetchSDGData = async () => {
   try {
     const prompt = `Generate SDG alignment data for air quality in India in this exact JSON format:
@@ -223,7 +209,6 @@ Include 5 items in each achievements, challenges and recommendations list. Inclu
     return JSON.parse(responseText);
   } catch (error) {
     console.error("Error fetching SDG data:", error);
-    // Fallback to static data
     return {
       sdg3: {
         title: "Good Health and Well-being",
@@ -311,7 +296,6 @@ Include 5 items in each achievements, challenges and recommendations list. Inclu
   }
 };
 
-// Function to fetch policy recommendations
 export const fetchPolicyRecommendations = async () => {
   try {
     const prompt = `Generate policy recommendations for improving air quality in India in this exact JSON format:
@@ -336,7 +320,6 @@ Include 5 policies in each timeframe, 4 success stories, and 5 key insights. Onl
     return JSON.parse(responseText);
   } catch (error) {
     console.error("Error fetching policy recommendations:", error);
-    // Fallback to static data
     return {
       shortTerm: [
         {
@@ -486,7 +469,6 @@ Include 5 policies in each timeframe, 4 success stories, and 5 key insights. Onl
   }
 };
 
-// Function to fetch health impact data
 export const fetchHealthImpactData = async () => {
   try {
     const prompt = `Generate data about air pollution health impacts in India in this exact JSON format:
@@ -515,7 +497,6 @@ Include 5 health impacts, 4 vulnerable groups, all 6 AQI categories, 5 states, a
     return JSON.parse(responseText);
   } catch (error) {
     console.error("Error fetching health impact data:", error);
-    // Fallback to static data
     return {
       healthImpacts: [
         {
@@ -665,7 +646,6 @@ Include 5 health impacts, 4 vulnerable groups, all 6 AQI categories, 5 states, a
   }
 };
 
-// Function to prepare report data
 export const generateReportData = async (location: string, pollutant: string, timeframe: string) => {
   try {
     const prompt = `Generate a detailed air quality report for ${location} focusing on ${pollutant} over the ${timeframe} timeframe in this JSON format:
@@ -689,7 +669,6 @@ Include realistic data with 12 data points. Only return the JSON, no explanation
     return JSON.parse(responseText);
   } catch (error) {
     console.error("Error generating report:", error);
-    // Fallback to static data
     return {
       summary: "Air quality in Delhi shows concerning levels of PM2.5 over the past year with seasonal variations.",
       averageAQI: 156,
