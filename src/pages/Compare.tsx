@@ -1,294 +1,158 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '../components/Navbar';
 import CompareCountries from '../components/CompareCountries';
-import { countriesData } from '../utils/mockData';
+import { fetchCountriesData } from '../utils/geminiAPI';
 import { PollutantType } from '../utils/types';
-import { HelpCircle, Info, AlertTriangle, Globe } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { X } from 'lucide-react';
 
 const Compare = () => {
   const [selectedCountries, setSelectedCountries] = useState<string[]>(['India', 'China', 'USA']);
-  const [selectedPollutant, setSelectedPollutant] = useState<PollutantType>('aqi');
+  const [pollutant, setPollutant] = useState<PollutantType>('aqi');
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
 
-  const handleCountryToggle = (country: string) => {
-    if (selectedCountries.includes(country)) {
-      if (selectedCountries.length > 1) { // Ensure at least one country is selected
-        setSelectedCountries(selectedCountries.filter(c => c !== country));
-      }
-    } else {
+  // Fetch countries data
+  const { data: countriesData, isLoading } = useQuery({
+    queryKey: ['countriesData'],
+    queryFn: fetchCountriesData,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+
+  // Update available countries when data is loaded
+  useEffect(() => {
+    if (countriesData) {
+      setAvailableCountries(countriesData.map(country => country.name));
+    }
+  }, [countriesData]);
+
+  // Handle adding a country to comparison
+  const handleAddCountry = (country: string) => {
+    if (!selectedCountries.includes(country) && selectedCountries.length < 5) {
       setSelectedCountries([...selectedCountries, country]);
     }
   };
 
+  // Handle removing a country from comparison
+  const handleRemoveCountry = (country: string) => {
+    setSelectedCountries(selectedCountries.filter(c => c !== country));
+  };
+
+  // Handle pollutant change
+  const handlePollutantChange = (value: string) => {
+    setPollutant(value as PollutantType);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Global Air Quality Comparison</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Compare air quality metrics between countries over time.
-          </p>
-        </div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center text-gray-800 dark:text-gray-100">
+          Compare Air Quality Across Countries
+        </h1>
         
-        {/* Filter Controls */}
-        <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Select Countries</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {countriesData.map(country => (
-                  <div key={country.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={`country-${country.id}`}
-                      checked={selectedCountries.includes(country.name)}
-                      onChange={() => handleCountryToggle(country.name)}
-                      className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
-                      disabled={selectedCountries.length === 1 && selectedCountries.includes(country.name)}
-                    />
-                    <label
-                      htmlFor={`country-${country.id}`}
-                      className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                    >
-                      {country.name}
-                    </label>
-                  </div>
-                ))}
+        <Card className="bg-white dark:bg-gray-800 shadow-sm mb-8">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+              <div className="flex-1 max-w-xs">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Add country to compare:</p>
+                <Select onValueChange={handleAddCountry}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCountries
+                      .filter(country => !selectedCountries.includes(country))
+                      .map(country => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Select Pollutant</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="pollutant-aqi"
-                    name="pollutant"
-                    value="aqi"
-                    checked={selectedPollutant === 'aqi'}
-                    onChange={() => setSelectedPollutant('aqi')}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="pollutant-aqi"
-                    className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                  >
-                    AQI
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="pollutant-pm25"
-                    name="pollutant"
-                    value="pm25"
-                    checked={selectedPollutant === 'pm25'}
-                    onChange={() => setSelectedPollutant('pm25')}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="pollutant-pm25"
-                    className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                  >
-                    PM2.5
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="pollutant-pm10"
-                    name="pollutant"
-                    value="pm10"
-                    checked={selectedPollutant === 'pm10'}
-                    onChange={() => setSelectedPollutant('pm10')}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="pollutant-pm10"
-                    className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                  >
-                    PM10
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="pollutant-no2"
-                    name="pollutant"
-                    value="no2"
-                    checked={selectedPollutant === 'no2'}
-                    onChange={() => setSelectedPollutant('no2')}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="pollutant-no2"
-                    className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                  >
-                    NO₂
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="pollutant-so2"
-                    name="pollutant"
-                    value="so2"
-                    checked={selectedPollutant === 'so2'}
-                    onChange={() => setSelectedPollutant('so2')}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="pollutant-so2"
-                    className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                  >
-                    SO₂
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="pollutant-o3"
-                    name="pollutant"
-                    value="o3"
-                    checked={selectedPollutant === 'o3'}
-                    onChange={() => setSelectedPollutant('o3')}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="pollutant-o3"
-                    className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                  >
-                    O₃
-                  </label>
+              
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Selected countries:</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCountries.map(country => (
+                    <Badge key={country} variant="secondary" className="pl-2 pr-1 py-1 flex items-center">
+                      {country}
+                      <button 
+                        onClick={() => handleRemoveCountry(country)}
+                        className="ml-1 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Comparison Chart */}
-        <div className="mb-6">
-          <CompareCountries 
-            selectedCountries={selectedCountries} 
-            pollutant={selectedPollutant} 
-          />
-        </div>
-        
-        {/* Insights and Analysis */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4">
-            <div className="flex items-center mb-3">
-              <HelpCircle className="h-5 w-5 text-theme-indigo mr-2" />
-              <h3 className="text-lg font-semibold">About This Comparison</h3>
-            </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              This tool enables comparison of air quality metrics across different countries over time. Data is 
-              sourced from national monitoring networks and standardized for comparison. Click on specific years 
-              in the chart to see detailed comparisons.
-            </p>
-          </div>
-          
-          <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4">
-            <div className="flex items-center mb-3">
-              <Info className="h-5 w-5 text-theme-blue mr-2" />
-              <h3 className="text-lg font-semibold">Key Takeaways</h3>
-            </div>
-            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-              <li className="flex items-start">
-                <span className="text-theme-blue mr-2">•</span>
-                <span>Developing economies typically show higher pollution levels but are improving over time.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-theme-blue mr-2">•</span>
-                <span>COVID-19 lockdowns in 2020 resulted in significant temporary air quality improvements globally.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-theme-blue mr-2">•</span>
-                <span>Policy interventions in China have shown measurable progress in reducing pollution since 2018.</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4">
-            <div className="flex items-center mb-3">
-              <AlertTriangle className="h-5 w-5 text-theme-green mr-2" />
-              <h3 className="text-lg font-semibold">Data Limitations</h3>
-            </div>
-            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-              <li className="flex items-start">
-                <span className="text-theme-green mr-2">•</span>
-                <span>Monitoring station density varies widely between countries, affecting data quality.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-theme-green mr-2">•</span>
-                <span>Different AQI calculation methods may be used in different regions, though we've standardized where possible.</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-theme-green mr-2">•</span>
-                <span>Data represents national averages and may not reflect specific urban or industrial hotspots.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        {/* Global Context */}
-        <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex items-center mb-4">
-            <Globe className="h-6 w-6 text-primary mr-2" />
-            <h3 className="text-lg font-semibold">Global Air Quality Context</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="text-sm text-gray-700 dark:text-gray-300 space-y-3">
-              <p>
-                According to the WHO, air pollution is responsible for an estimated 7 million premature deaths worldwide every year. 
-                Approximately 99% of the global population breathes air that exceeds WHO guideline limits.
-              </p>
-              <p>
-                While developed nations have made significant progress in reducing air pollution since the 1970s, many developing 
-                countries continue to struggle with poor air quality due to rapid industrialization, urbanization, and limited 
-                regulatory enforcement.
-              </p>
-            </div>
-            
-            <div className="text-sm text-gray-700 dark:text-gray-300 space-y-3">
-              <p>
-                The most polluted regions globally include Northern India, parts of China, and areas in the Middle East and North Africa.
-                Clean air initiatives, renewable energy adoption, and transportation reforms have proven effective in reducing pollution
-                levels in many countries.
-              </p>
-              <p>
-                International agreements and frameworks like the Paris Climate Accord indirectly contribute to air quality improvements 
-                through reduced fossil fuel consumption and emissions controls.
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-      
-      <footer className="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <div className="flex items-center">
-                <span className="text-theme-blue font-bold text-xl">Air</span>
-                <span className="text-theme-green font-bold text-xl">Spark</span>
-                <span className="ml-1 text-xs bg-theme-indigo text-white px-1.5 py-0.5 rounded-md">VISION</span>
+              
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Select pollutant:</p>
+                <Select defaultValue="aqi" onValueChange={handlePollutantChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Pollutant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aqi">AQI (Overall)</SelectItem>
+                    <SelectItem value="pm25">PM2.5</SelectItem>
+                    <SelectItem value="pm10">PM10</SelectItem>
+                    <SelectItem value="no2">NO₂</SelectItem>
+                    <SelectItem value="so2">SO₂</SelectItem>
+                    <SelectItem value="o3">O₃</SelectItem>
+                    <SelectItem value="co">CO</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Environmental Intelligence Platform for Air Quality Analytics
-              </p>
             </div>
-            
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              © {new Date().getFullYear()} AirSpark Vision. All rights reserved.
-            </div>
+          </CardContent>
+        </Card>
+        
+        {isLoading ? (
+          <div className="flex items-center justify-center h-80">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-theme-blue"></div>
           </div>
-        </div>
-      </footer>
+        ) : (
+          <div className="space-y-6">
+            <CompareCountries selectedCountries={selectedCountries} pollutant={pollutant} />
+            
+            {/* Additional information section */}
+            <Card className="bg-white dark:bg-gray-800 shadow-sm p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
+                Understanding the Comparison
+              </h2>
+              <div className="space-y-4 text-gray-700 dark:text-gray-300">
+                <p>
+                  This chart visualizes historical air quality data across selected countries from 2018 to 2023. 
+                  The trends reflect various factors including policy changes, economic development, 
+                  industrialization levels, and environmental regulations specific to each country.
+                </p>
+                <p>
+                  When comparing countries, consider factors such as:
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Population density and urbanization levels</li>
+                  <li>Industrial activity and energy generation sources</li>
+                  <li>Geographic and meteorological conditions</li>
+                  <li>Implementation of air quality policies and regulations</li>
+                  <li>Economic development stage and priorities</li>
+                </ul>
+                <p>
+                  Click on specific years in the chart to see detailed comparisons for that time period.
+                  You can add up to 5 countries for comparison and switch between different pollutants to 
+                  get a comprehensive understanding of air quality trends.
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

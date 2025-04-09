@@ -1,240 +1,217 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '../components/Navbar';
 import AQIMap from '../components/AQIMap';
 import AQIChart from '../components/AQIChart';
 import CityRankings from '../components/CityRankings';
-import { topCities, bottomCities, indiaAQIData } from '../utils/mockData';
-import { PollutantType, TimeFilter } from '../utils/types';
-import { Clock, CloudRain, CloudSnow, Wind, Thermometer, Calendar } from 'lucide-react';
+import { fetchAQIData, fetchCityRankings } from '../utils/geminiAPI';
+import { indiaAQIData } from '../utils/mockData';
+import { AQIData, CityRanking, TimeFilter, PollutantType } from '../utils/types';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
-  const [selectedPollutant, setSelectedPollutant] = useState<PollutantType>('pm25');
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState<TimeFilter>('monthly');
-  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
+  const [selectedCity, setSelectedCity] = useState<AQIData | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('daily');
+  const [pollutant, setPollutant] = useState<PollutantType>('aqi');
 
-  // Calculate average AQI
-  const averageAQI = Math.round(
-    indiaAQIData.reduce((sum, city) => sum + city.aqi, 0) / indiaAQIData.length
-  );
+  // Fetch AQI data
+  const { data: aqiData, isLoading: isLoadingAQI } = useQuery({
+    queryKey: ['aqiData'],
+    queryFn: fetchAQIData,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  // Count cities by category
-  const citiesByCategory = indiaAQIData.reduce((acc, city) => {
-    const category = city.category;
-    acc[category] = (acc[category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Fetch city rankings
+  const { data: rankings, isLoading: isLoadingRankings } = useQuery({
+    queryKey: ['cityRankings'],
+    queryFn: fetchCityRankings,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Set a default selected city when data is loaded
+  useEffect(() => {
+    if (aqiData && aqiData.length > 0 && !selectedCity) {
+      // Find Delhi or use the first city as default
+      const delhi = aqiData.find(city => city.city === 'Delhi');
+      setSelectedCity(delhi || aqiData[0]);
+    }
+  }, [aqiData, selectedCity]);
+
+  // Handle city selection from the map
+  const handleCitySelect = (city: AQIData) => {
+    setSelectedCity(city);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">India Air Quality Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Real-time and historical air quality data analysis for cities across India.
-          </p>
-        </div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center text-gray-800 dark:text-gray-100">
+          India Air Quality Dashboard
+        </h1>
         
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="stat-card card-hover">
-            <div className="flex justify-between items-start">
-              <span className="stat-label">Average AQI</span>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <Wind className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <div className="stat-value">{averageAQI}</div>
-            <div className="mt-2 text-sm">
-              {averageAQI > 150 ? (
-                <span className="text-red-500">Unhealthy</span>
-              ) : averageAQI > 100 ? (
-                <span className="text-orange-500">Moderate</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <Card className="bg-white dark:bg-gray-800 shadow-sm overflow-hidden h-[500px]">
+              {isLoadingAQI ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-theme-blue"></div>
+                </div>
               ) : (
-                <span className="text-green-500">Good</span>
+                <AQIMap 
+                  aqiData={aqiData || indiaAQIData} 
+                  onCitySelect={handleCitySelect}
+                  selectedCity={selectedCity}
+                />
               )}
-            </div>
-          </div>
-          
-          <div className="stat-card card-hover">
-            <div className="flex justify-between items-start">
-              <span className="stat-label">Cities Monitored</span>
-              <div className="p-2 bg-theme-blue/10 rounded-full">
-                <CloudRain className="h-5 w-5 text-theme-blue" />
-              </div>
-            </div>
-            <div className="stat-value">{indiaAQIData.length}</div>
-            <div className="mt-2 text-sm">Across {new Set(indiaAQIData.map(c => c.state)).size} states</div>
-          </div>
-          
-          <div className="stat-card card-hover">
-            <div className="flex justify-between items-start">
-              <span className="stat-label">Last Updated</span>
-              <div className="p-2 bg-theme-indigo/10 rounded-full">
-                <Clock className="h-5 w-5 text-theme-indigo" />
-              </div>
-            </div>
-            <div className="stat-value text-xl">
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <div className="mt-2 text-sm">
-              {new Date().toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-            </div>
-          </div>
-          
-          <div className="stat-card card-hover">
-            <div className="flex justify-between items-start">
-              <span className="stat-label">Unhealthy Cities</span>
-              <div className="p-2 bg-red-500/10 rounded-full">
-                <Thermometer className="h-5 w-5 text-red-500" />
-              </div>
-            </div>
-            <div className="stat-value">
-              {(citiesByCategory['Unhealthy'] || 0) + 
-                (citiesByCategory['Very Unhealthy'] || 0) + 
-                (citiesByCategory['Hazardous'] || 0)}
-            </div>
-            <div className="mt-2 text-sm">
-              {Math.round(((citiesByCategory['Unhealthy'] || 0) + 
-                (citiesByCategory['Very Unhealthy'] || 0) + 
-                (citiesByCategory['Hazardous'] || 0)) / indiaAQIData.length * 100)}% of monitored cities
-            </div>
-          </div>
-        </div>
-        
-        {/* Main Map */}
-        <div className="mb-6">
-          <AQIMap />
-        </div>
-        
-        {/* Filter Options */}
-        <div className="flex flex-wrap items-center gap-3 mb-6 bg-white dark:bg-card p-3 rounded-lg shadow-sm">
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Pollutant:</label>
-            <select 
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-              value={selectedPollutant}
-              onChange={(e) => setSelectedPollutant(e.target.value as PollutantType)}
-            >
-              <option value="pm25">PM2.5</option>
-              <option value="pm10">PM10</option>
-              <option value="no2">NO₂</option>
-              <option value="so2">SO₂</option>
-              <option value="o3">O₃</option>
-              <option value="co">CO</option>
-            </select>
+            </Card>
           </div>
           
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Time Period:</label>
-            <select 
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-              value={selectedTimeFilter}
-              onChange={(e) => setSelectedTimeFilter(e.target.value as TimeFilter)}
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Chart Type:</label>
-            <div className="inline-flex rounded-md shadow-sm">
-              <button
-                type="button"
-                className={`px-3 py-2 text-sm font-medium rounded-l-lg ${
-                  chartType === 'line'
-                    ? 'bg-primary text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600'
-                }`}
-                onClick={() => setChartType('line')}
-              >
-                Line
-              </button>
-              <button
-                type="button"
-                className={`px-3 py-2 text-sm font-medium rounded-r-lg ${
-                  chartType === 'bar'
-                    ? 'bg-primary text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600'
-                }`}
-                onClick={() => setChartType('bar')}
-              >
-                Bar
-              </button>
-            </div>
-          </div>
-          
-          <div className="ml-auto flex items-center">
-            <Calendar className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Data from January 2023 to Present
-            </span>
+            <Card className="bg-white dark:bg-gray-800 shadow-sm p-4 h-[500px] overflow-y-auto">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
+                City Details
+              </h2>
+              
+              {selectedCity ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">
+                        {selectedCity.city}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {selectedCity.state}, {selectedCity.country}
+                      </p>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedCity.category === 'Good' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' :
+                      selectedCity.category === 'Moderate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200' :
+                      selectedCity.category === 'Unhealthy for Sensitive Groups' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200' :
+                      selectedCity.category === 'Unhealthy' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200' :
+                      selectedCity.category === 'Very Unhealthy' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-200'
+                    }`}>
+                      {selectedCity.category}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">AQI</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.aqi}</p>
+                    </div>
+                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">PM2.5</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.pm25}</p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">PM10</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.pm10}</p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">NO₂</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.no2}</p>
+                    </div>
+                    <div className="bg-teal-50 dark:bg-teal-900/20 p-3 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">SO₂</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.so2}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">O₃</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.o3}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900/20 p-3 rounded-lg col-span-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">CO</p>
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{selectedCity.co}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Last Updated:
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {new Date(selectedCity.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500 dark:text-gray-400">Select a city on the map to view details</p>
+                </div>
+              )}
+            </Card>
           </div>
         </div>
         
-        {/* Pollutant Chart */}
-        <div className="mb-6">
-          <AQIChart 
-            chartType={chartType} 
-            pollutant={selectedPollutant} 
-            timeFilter={selectedTimeFilter} 
-          />
-        </div>
-        
-        {/* City Rankings */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <CityRankings title="Cleanest Cities" cities={topCities} />
-          <CityRankings title="Most Polluted Cities" cities={bottomCities} />
-        </div>
-        
-        {/* Key Insights */}
-        <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-theme-lightBlue dark:bg-accent/20 p-4 rounded-md">
-              <h4 className="font-medium mb-2">Seasonal Patterns</h4>
-              <p className="text-sm">Air quality significantly worsens during winter months (November-February) due to temperature inversions trapping pollutants closer to the ground.</p>
-            </div>
-            
-            <div className="bg-theme-lightGreen dark:bg-accent/20 p-4 rounded-md">
-              <h4 className="font-medium mb-2">Regional Variations</h4>
-              <p className="text-sm">Northern India, particularly the Indo-Gangetic plains, consistently shows higher pollution levels than southern and coastal regions.</p>
-            </div>
-            
-            <div className="bg-theme-lightBlue dark:bg-accent/20 p-4 rounded-md">
-              <h4 className="font-medium mb-2">Pollution Sources</h4>
-              <p className="text-sm">Major contributors include vehicular emissions (30%), industrial activity (27%), dust and construction (17%), and biomass burning (15%).</p>
-            </div>
-          </div>
-        </div>
-      </main>
-      
-      <footer className="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <div className="flex items-center">
-                <span className="text-theme-blue font-bold text-xl">Air</span>
-                <span className="text-theme-green font-bold text-xl">Spark</span>
-                <span className="ml-1 text-xs bg-theme-indigo text-white px-1.5 py-0.5 rounded-md">VISION</span>
+        <div className="mb-8">
+          <Card className="bg-white dark:bg-gray-800 shadow-sm p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                Pollutant Trends
+              </h2>
+              
+              <div className="flex space-x-2">
+                <Tabs defaultValue="aqi" onValueChange={(value) => setPollutant(value as PollutantType)}>
+                  <TabsList>
+                    <TabsTrigger value="aqi">AQI</TabsTrigger>
+                    <TabsTrigger value="pm25">PM2.5</TabsTrigger>
+                    <TabsTrigger value="pm10">PM10</TabsTrigger>
+                    <TabsTrigger value="no2">NO₂</TabsTrigger>
+                    <TabsTrigger value="so2">SO₂</TabsTrigger>
+                    <TabsTrigger value="o3">O₃</TabsTrigger>
+                    <TabsTrigger value="co">CO</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                <Tabs defaultValue="daily" onValueChange={(value) => setTimeFilter(value as TimeFilter)}>
+                  <TabsList>
+                    <TabsTrigger value="daily">Daily</TabsTrigger>
+                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                    <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                    <TabsTrigger value="yearly">Yearly</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Environmental Intelligence Platform for Air Quality Analytics
-              </p>
             </div>
             
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              © {new Date().getFullYear()} AirSpark Vision. All rights reserved.
+            <div className="h-80">
+              <AQIChart pollutant={pollutant} timeFilter={timeFilter} />
             </div>
-          </div>
+          </Card>
         </div>
-      </footer>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {isLoadingRankings ? (
+            Array(2).fill(0).map((_, i) => (
+              <Card key={i} className="bg-white dark:bg-gray-800 shadow-sm p-4 h-[400px]">
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-theme-blue"></div>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <>
+              <CityRankings
+                title="Cleanest Cities"
+                cities={rankings?.topCities || []}
+                type="top"
+              />
+              <CityRankings
+                title="Most Polluted Cities"
+                cities={rankings?.bottomCities || []}
+                type="bottom"
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
