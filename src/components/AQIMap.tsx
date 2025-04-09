@@ -1,82 +1,89 @@
 
 import React from 'react';
-import { indiaAQIData } from '../utils/mockData';
-import { getAQIColor } from '../utils/mockData';
+import { AQIData } from '../utils/types';
 
-const AQIMap: React.FC = () => {
-  // In a real implementation, this would use an actual map library like Mapbox or Google Maps
-  // For now, we'll create a placeholder map with city markers
-  
+interface AQIMapProps {
+  aqiData: AQIData[];
+  onCitySelect: (city: AQIData) => void;
+  selectedCity: AQIData | null;
+}
+
+const AQIMap: React.FC<AQIMapProps> = ({ aqiData, onCitySelect, selectedCity }) => {
+  // This is a placeholder for the actual map implementation
   return (
-    <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4">
-      <h3 className="text-lg font-semibold mb-4">Air Quality Index Map</h3>
-      
-      <div className="relative w-full h-[400px] bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
-        {/* Map Placeholder - In production, replace with actual map integration */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-gray-400 dark:text-gray-600 text-center">
-            <p>Interactive India AQI Map</p>
-            <p className="text-sm">Production version would use Mapbox/Google Maps integration</p>
-          </div>
-        </div>
-        
-        {/* City Markers - These would be positioned correctly on a real map */}
-        <div className="absolute inset-0 p-4">
-          {indiaAQIData.map((city) => (
-            <div 
-              key={city.id}
-              className="absolute inline-flex flex-col items-center"
-              style={{ 
-                top: `${Math.random() * 80}%`, 
-                left: `${Math.random() * 80}%`
-              }}
-            >
-              <div 
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${getAQIColor(city.category)}`}
-              >
-                {city.aqi}
-              </div>
-              <div className="mt-1 text-xs font-medium bg-white dark:bg-gray-900 px-1 py-0.5 rounded shadow-sm">
-                {city.city}
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {/* Legend */}
-        <div className="absolute bottom-3 right-3 bg-white dark:bg-gray-900 p-2 rounded-md shadow-md text-xs">
-          <h4 className="font-medium mb-1">AQI Legend</h4>
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-aqi-good mr-1"></div>
-              <span>Good (0-50)</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-aqi-moderate mr-1"></div>
-              <span>Moderate (51-100)</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-aqi-unhealthySensitive mr-1"></div>
-              <span>Unhealthy for Sensitive Groups (101-150)</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-aqi-unhealthy mr-1"></div>
-              <span>Unhealthy (151-200)</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-aqi-veryUnhealthy mr-1"></div>
-              <span>Very Unhealthy (201-300)</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-aqi-hazardous mr-1"></div>
-              <span>Hazardous (301+)</span>
-            </div>
-          </div>
+    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 relative">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-gray-500 dark:text-gray-400">
+          <p className="text-center">Interactive AQI Map</p>
+          <p className="text-sm text-center">(Placeholder for actual map implementation)</p>
         </div>
       </div>
       
-      <div className="mt-4 text-sm bg-muted dark:bg-muted p-3 rounded-md">
-        <p>Note: In the fully implemented version, this would be an interactive map showing real-time air quality data for cities across India, with color-coded markers for AQI levels and the ability to zoom into specific regions.</p>
+      <div className="absolute inset-0 p-4">
+        {aqiData.map((city) => (
+          <div
+            key={city.id}
+            onClick={() => onCitySelect(city)}
+            className={`
+              absolute cursor-pointer transition-all 
+              ${selectedCity?.id === city.id ? 'z-10 scale-110' : 'z-0 hover:scale-105'}
+            `}
+            style={{
+              top: `${Math.random() * 80}%`,
+              left: `${Math.random() * 80}%`,
+            }}
+          >
+            <div 
+              className={`
+                w-4 h-4 rounded-full
+                ${city.category === 'Good' ? 'bg-green-500' : 
+                  city.category === 'Moderate' ? 'bg-yellow-500' : 
+                  city.category === 'Unhealthy for Sensitive Groups' ? 'bg-orange-500' : 
+                  city.category === 'Unhealthy' ? 'bg-red-500' : 
+                  city.category === 'Very Unhealthy' ? 'bg-purple-500' :
+                  'bg-gray-500'
+                }
+                ${selectedCity?.id === city.id ? 'ring-2 ring-white dark:ring-gray-800' : ''}
+              `}
+            />
+            <div className={`
+              mt-1 text-xs bg-white dark:bg-gray-900 px-1 py-0.5 rounded shadow-sm
+              ${selectedCity?.id === city.id ? 'font-medium' : 'opacity-80'}
+            `}>
+              {city.city} ({city.aqi})
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-900 p-2 rounded shadow-sm text-xs">
+        <div className="font-medium mb-1">AQI Legend</div>
+        <div className="space-y-1">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-1" />
+            <span>Good (0-50)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1" />
+            <span>Moderate (51-100)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-orange-500 rounded-full mr-1" />
+            <span>Unhealthy for Sensitive Groups (101-150)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-red-500 rounded-full mr-1" />
+            <span>Unhealthy (151-200)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-purple-500 rounded-full mr-1" />
+            <span>Very Unhealthy (201-300)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-gray-500 rounded-full mr-1" />
+            <span>Hazardous (301+)</span>
+          </div>
+        </div>
       </div>
     </div>
   );

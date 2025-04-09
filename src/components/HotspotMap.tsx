@@ -2,9 +2,23 @@
 import React from 'react';
 import { hotspotData } from '../utils/mockData';
 import { getAQIColor } from '../utils/mockData';
+import { HotspotData } from '../utils/types';
 
-const HotspotMap: React.FC = () => {
-  // In a real implementation, this would use an actual map library like Mapbox or Google Maps
+interface HotspotMapProps {
+  hotspotData?: HotspotData[];
+  onHotspotSelect?: (hotspot: HotspotData) => void;
+  selectedHotspot?: HotspotData | null;
+  timelapseActive?: boolean;
+}
+
+const HotspotMap: React.FC<HotspotMapProps> = ({ 
+  hotspotData: propHotspotData, 
+  onHotspotSelect, 
+  selectedHotspot, 
+  timelapseActive 
+}) => {
+  // Use the provided data or fallback to the mock data
+  const displayData = propHotspotData || hotspotData;
   
   return (
     <div className="bg-white dark:bg-card rounded-lg shadow-sm p-4">
@@ -21,7 +35,7 @@ const HotspotMap: React.FC = () => {
         
         {/* Hotspot Markers - These would be positioned correctly on a real map */}
         <div className="absolute inset-0 p-4">
-          {hotspotData.map((hotspot) => {
+          {displayData.map((hotspot) => {
             // Scale radius based on intensity
             const size = 20 + (hotspot.intensity * 60);
             
@@ -33,6 +47,7 @@ const HotspotMap: React.FC = () => {
                   top: `${Math.random() * 80}%`, 
                   left: `${Math.random() * 80}%`,
                 }}
+                onClick={() => onHotspotSelect && onHotspotSelect(hotspot)}
               >
                 <div 
                   className={`rounded-full flex items-center justify-center animate-pulse-slow ${getAQIColor(hotspot.category)}`}

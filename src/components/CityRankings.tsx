@@ -7,6 +7,7 @@ import { CityRanking } from '../utils/types';
 interface CityRankingsProps {
   title: string;
   cities: CityRanking[];
+  type?: string; // Added type prop
 }
 
 const CityRankings: React.FC<CityRankingsProps> = ({ title, cities }) => {
