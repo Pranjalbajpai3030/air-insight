@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import HotspotMap from '../components/HotspotMap';
 import { hotspotData } from '../utils/mockData';
 import { HotspotData } from '../utils/types';
-import { AlertTriangle, ThermometerSun, Factory, Car, Buildings, Wind, Info } from 'lucide-react';
+import { AlertTriangle, ThermometerSun, Factory, Car, Building, Wind, Info } from 'lucide-react';
 
 const Hotspots = () => {
   const [timelapseActive, setTimelapseActive] = useState(false);
@@ -173,7 +172,7 @@ const Hotspots = () => {
                     <div className="flex justify-between items-start">
                       <span className="stat-label">Affected Area</span>
                       <div className="p-2 bg-theme-blue/10 rounded-full">
-                        <Buildings className="h-5 w-5 text-theme-blue" />
+                        <Building className="h-5 w-5 text-theme-blue" />
                       </div>
                     </div>
                     <div className="stat-value">{selectedHotspot.radius} km</div>
@@ -286,7 +285,7 @@ const Hotspots = () => {
               
               <div className="flex items-start">
                 <div className="bg-theme-indigo/10 p-1 rounded mr-2 mt-0.5">
-                  <Buildings className="h-4 w-4 text-theme-indigo" />
+                  <Building className="h-4 w-4 text-theme-indigo" />
                 </div>
                 <div>
                   <span className="font-medium">Urban Density:</span> Highly populated areas with concentrated emissions from residential, commercial, and transportation sources.
