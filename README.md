@@ -1,73 +1,155 @@
-# Welcome to your Lovable project
+Here's a well-structured and comprehensive `README.md` for your **Air Insight** project, tailored for clarity, usability, and developer onboarding:
 
-## Project info
+---
+URL - https://air-insight.vercel.app/
+# 🌍 Air Insight
 
-**URL**: https://lovable.dev/projects/2ea56b5e-73f5-43f7-8736-fc82b3973569
+**Air Insight** is a modern, data-driven web application built with TypeScript, React, and TailwindCSS. It empowers users to visualize, compare, and analyze air quality across global cities, understand health impacts, and explore actionable insights tied to environmental data and the UN's Sustainable Development Goals (SDGs).
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 📦 Project Structure
 
-**Use Lovable**
+```
+d:/air-insight
+├── public/             # Static files (favicon, robots.txt, etc.)
+├── src/
+│   ├── components/     # Reusable UI and data visualization components
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # Utility functions and helpers
+│   ├── pages/          # Main application views/routes
+│   ├── utils/          # Type definitions, mock data, and external API logic
+│   └── main.tsx        # Entry point of the application
+├── index.html          # App HTML shell
+├── tailwind.config.ts  # TailwindCSS configuration
+├── tsconfig*.json      # TypeScript configuration files
+└── vite.config.ts      # Vite build tool configuration
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2ea56b5e-73f5-43f7-8736-fc82b3973569) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Features
 
-**Use your preferred IDE**
+- 🔍 **City Air Quality Insights** – Interactive charts, maps, and rankings
+- 🌡️ **Hotspot Detection** – Identify pollution-prone areas on a global scale
+- ⚕️ **Health Impact Visualization** – Understand the effect of AQI on human health
+- 🌐 **Compare Countries** – Side-by-side AQI data visualization
+- 🌱 **Sustainable Development Goals (SDG)** – Explore air quality's impact on global goals
+- 📊 **Reports & Analytics** – Generate in-depth environmental reports
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🚀 Getting Started
 
-Follow these steps:
+### Prerequisites
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Make sure you have the following installed:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- **Node.js** (v18 or later)
+- **Bun** (if you're using it as your package manager)
+- **Git**
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Installation
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/yourusername/air-insight.git
+cd air-insight
+
+# Using Bun
+bun install
+
+# Or using npm
+npm install
+```
+
+---
+
+### Development
+
+Start the local development server:
+
+```bash
+bun dev
+# or
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be running at `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🛠️ Tech Stack
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **React** (w/ Vite) – Frontend UI Library
+- **TypeScript** – Type safety for scalable development
+- **TailwindCSS** – Utility-first CSS framework
+- **ShadCN UI** – Reusable, accessible UI components
+- **Chart.js** – Data visualization
+- **Custom Hooks & Context** – Efficient state and logic handling
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 📁 Notable Components
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| Component               | Description                                                  |
+|------------------------|--------------------------------------------------------------|
+| `AQIChart`             | Displays AQI trends using interactive charts                 |
+| `AQIMap`, `HotspotMap` | Map visualizations of air quality data                       |
+| `CityRankings`         | Ranks cities based on AQI                                    |
+| `CompareCountries`     | Country-wise comparison of air quality metrics               |
+| `Navbar`               | Navigation bar with responsive design                        |
+| `ui/`                  | Shared UI primitives (modal, toast, input, form, etc.)       |
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/2ea56b5e-73f5-43f7-8736-fc82b3973569) and click on Share -> Publish.
+## 📄 Pages Overview
 
-## Can I connect a custom domain to my Lovable project?
+- `/` – Home (Index)
+- `/compare` – Country Comparison
+- `/health-impact` – Visualizes health-related AQI consequences
+- `/hotspots` – Highlights high AQI areas
+- `/insights` – Summary of environmental insights
+- `/reports` – Detailed AQI report generator
+- `/sdg` – Sustainable Development Goals and AQI
+- `404` – NotFound page
 
-Yes it is!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🧪 Testing & Linting
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Lint the codebase:
+```bash
+bun lint
+# or
+npm run lint
+```
+
+(ESLint is configured via `eslint.config.js`)
+
+---
+
+## 📈 Future Roadmap
+
+- ✅ Real-time AQI data integration from public APIs
+- 🧠 AI-generated pollution mitigation suggestions
+- 📱 Progressive Web App (PWA) support
+- 🗂️ User dashboard & saved report history
+- 🌍 Multilingual support
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! To get started:
+
+1. Fork the repo
+2. Create a new branch (`git checkout -b feature/your-feature`)
+3. Commit your changes
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a pull request
+
+---
