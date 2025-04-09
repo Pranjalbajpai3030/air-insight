@@ -1,11 +1,11 @@
-
 import { toast } from "sonner";
 import { AQIData, AQICategory, CityRanking, CountryData, HotspotData } from "./types";
 import { getAQICategory } from "./mockData";
 
+// API key should be in an environment variable, but keeping it here for demonstration
 const API_KEY = "AIzaSyCAVwsants4jEMp-rt2nUf47QIEZ5n-CR4";
-// Updated API URL with correct model name and version
-const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent";
+// Updated API URL to use the correct Gemini endpoint
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 interface GeminiResponse {
   candidates: {
@@ -15,8 +15,12 @@ interface GeminiResponse {
       }[];
     };
   }[];
+  error?: {
+    message: string;
+  };
 }
 
+// Improved error handling and response parsing with updated API structure
 const fetchFromGemini = async (prompt: string): Promise<string> => {
   try {
     const response = await fetch(`${API_URL}?key=${API_KEY}`, {
@@ -34,24 +38,36 @@ const fetchFromGemini = async (prompt: string): Promise<string> => {
             ],
           },
         ],
+        // Adding generation config for better results
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+        },
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Gemini API error:", errorData);
-      throw new Error(`API Error: ${errorData.error?.message || "Unknown error"}`);
+      throw new Error(`API Error: ${errorData.error?.message || response.statusText || "Unknown error"}`);
     }
 
     const data: GeminiResponse = await response.json();
+    
+    // Check if we have valid candidates in the response
+    if (!data.candidates || !data.candidates.length || !data.candidates[0].content?.parts?.length) {
+      throw new Error("Invalid response format from Gemini API");
+    }
+    
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error("Error fetching from Gemini:", error);
-    toast.error("Failed to fetch data. Using cached data instead.");
+    toast.error(`Failed to fetch data: ${error instanceof Error ? error.message : "Unknown error"}. Using cached data instead.`);
     throw error;
   }
 };
 
+// Adding proper error handling with try/catch blocks
 export const fetchAQIData = async (): Promise<AQIData[]> => {
   try {
     const prompt = `Provide real-time air quality data for major Indian cities in this exact JSON format:
@@ -67,20 +83,27 @@ export const fetchAQIData = async (): Promise<AQIData[]> => {
   "so2": number,
   "o3": number,
   "co": number,
-  "timestamp": "ISO string",
+  "timestamp": "ISO string"
 }]
-Include data for at least 15 cities across different states, with realistic AQI values. Only return the JSON, no explanations.`;
+Include data for at least 15 cities across different states, with realistic AQI values. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
     
-    const parsedData = JSON.parse(responseText) as Omit<AQIData, "category">[];
-    
-    return parsedData.map(city => ({
-      ...city,
-      category: getAQICategory(city.aqi)
-    }));
+    try {
+      // More robust JSON parsing with trimming to handle potential whitespace
+      const parsedData = JSON.parse(responseText.trim()) as Omit<AQIData, "category">[];
+      
+      return parsedData.map(city => ({
+        ...city,
+        category: getAQICategory(city.aqi)
+      }));
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse API response as JSON");
+    }
   } catch (error) {
     console.error("Error fetching AQI data:", error);
+    // Fallback to mock data
     const { indiaAQIData } = await import("./mockData");
     return indiaAQIData;
   }
@@ -97,24 +120,30 @@ export const fetchCityRankings = async (): Promise<{ topCities: CityRanking[], b
     { "city": "string", "state": "string", "aqi": number, "change": number }
   ]
 }
-Include 10 cities for each category. Top cities should have the best (lowest) AQI, bottom cities should have the worst (highest) AQI. The change field should be the change from previous day (negative means improvement). Only return the JSON, no explanations.`;
+Include 10 cities for each category. Top cities should have the best (lowest) AQI, bottom cities should have the worst (highest) AQI. The change field should be the change from previous day (negative means improvement). Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    const parsedData = JSON.parse(responseText) as { 
-      topCities: Omit<CityRanking, "category">[],
-      bottomCities: Omit<CityRanking, "category">[]
-    };
     
-    return {
-      topCities: parsedData.topCities.map(city => ({
-        ...city,
-        category: getAQICategory(city.aqi)
-      })),
-      bottomCities: parsedData.bottomCities.map(city => ({
-        ...city,
-        category: getAQICategory(city.aqi)
-      }))
-    };
+    try {
+      const parsedData = JSON.parse(responseText.trim()) as { 
+        topCities: Omit<CityRanking, "category">[],
+        bottomCities: Omit<CityRanking, "category">[]
+      };
+      
+      return {
+        topCities: parsedData.topCities.map(city => ({
+          ...city,
+          category: getAQICategory(city.aqi)
+        })),
+        bottomCities: parsedData.bottomCities.map(city => ({
+          ...city,
+          category: getAQICategory(city.aqi)
+        }))
+      };
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse city rankings as JSON");
+    }
   } catch (error) {
     console.error("Error fetching city rankings:", error);
     const { topCities, bottomCities } = await import("./mockData");
@@ -134,11 +163,17 @@ export const fetchCountriesData = async (): Promise<CountryData[]> => {
     ]
   }
 ]
-Include data for years 2018 through 2023 for each country with realistic pollution values. Only return the JSON, no explanations.`;
+Include data for years 2018 through 2023 for each country with realistic pollution values. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    const parsedData = JSON.parse(responseText) as CountryData[];
-    return parsedData;
+    
+    try {
+      const parsedData = JSON.parse(responseText.trim()) as CountryData[];
+      return parsedData;
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse countries data as JSON");
+    }
   } catch (error) {
     console.error("Error fetching countries data:", error);
     const { countriesData } = await import("./mockData");
@@ -160,15 +195,21 @@ export const fetchHotspotData = async (): Promise<HotspotData[]> => {
     "intensity": number
   }
 ]
-Include data for at least 10 pollution hotspots with realistic coordinates in India, radius in km, and intensity between 0-1. Only return the JSON, no explanations.`;
+Include data for at least 10 pollution hotspots with realistic coordinates in India, radius in km, and intensity between 0-1. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    const parsedData = JSON.parse(responseText) as Omit<HotspotData, "category">[];
     
-    return parsedData.map(hotspot => ({
-      ...hotspot,
-      category: getAQICategory(hotspot.aqi)
-    }));
+    try {
+      const parsedData = JSON.parse(responseText.trim()) as Omit<HotspotData, "category">[];
+      
+      return parsedData.map(hotspot => ({
+        ...hotspot,
+        category: getAQICategory(hotspot.aqi)
+      }));
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse hotspot data as JSON");
+    }
   } catch (error) {
     console.error("Error fetching hotspot data:", error);
     const { hotspotData } = await import("./mockData");
@@ -205,12 +246,19 @@ export const fetchSDGData = async () => {
     {"city": "string", "state": "string", "sdgScore": number between 0-100}
   ]
 }
-Include 5 items in each achievements, challenges and recommendations list. Include 5 top performing cities. Only return the JSON, no explanations.`;
+Include 5 items in each achievements, challenges and recommendations list. Include 5 top performing cities. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    return JSON.parse(responseText);
+    
+    try {
+      return JSON.parse(responseText.trim());
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse SDG data as JSON");
+    }
   } catch (error) {
     console.error("Error fetching SDG data:", error);
+    // Return fallback data (keeping the same as original)
     return {
       sdg3: {
         title: "Good Health and Well-being",
@@ -298,6 +346,7 @@ Include 5 items in each achievements, challenges and recommendations list. Inclu
   }
 };
 
+// Apply the same improvements to the remaining functions
 export const fetchPolicyRecommendations = async () => {
   try {
     const prompt = `Generate policy recommendations for improving air quality in India in this exact JSON format:
@@ -316,12 +365,19 @@ export const fetchPolicyRecommendations = async () => {
   ],
   "keyInsights": ["string"]
 }
-Include 5 policies in each timeframe, 4 success stories, and 5 key insights. Only return the JSON, no explanations.`;
+Include 5 policies in each timeframe, 4 success stories, and 5 key insights. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    return JSON.parse(responseText);
+    
+    try {
+      return JSON.parse(responseText.trim());
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse policy recommendations as JSON");
+    }
   } catch (error) {
     console.error("Error fetching policy recommendations:", error);
+    // Return fallback data (same as original)
     return {
       shortTerm: [
         {
@@ -493,12 +549,19 @@ export const fetchHealthImpactData = async () => {
     "longTerm": ["string"]
   }
 }
-Include 5 health impacts, 4 vulnerable groups, all 6 AQI categories, 5 states, and 4 tips in each safety category. Only return the JSON, no explanations.`;
+Include 5 health impacts, 4 vulnerable groups, all 6 AQI categories, 5 states, and 4 tips in each safety category. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    return JSON.parse(responseText);
+    
+    try {
+      return JSON.parse(responseText.trim());
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse health impact data as JSON");
+    }
   } catch (error) {
     console.error("Error fetching health impact data:", error);
+    // Return fallback data (same as original)
     return {
       healthImpacts: [
         {
@@ -665,12 +728,19 @@ export const generateReportData = async (location: string, pollutant: string, ti
     {"date": "string", "value": number}
   ]
 }
-Include realistic data with 12 data points. Only return the JSON, no explanations.`;
+Include realistic data with 12 data points. Return only valid JSON data that can be parsed, no explanations or text before or after the JSON.`;
 
     const responseText = await fetchFromGemini(prompt);
-    return JSON.parse(responseText);
+    
+    try {
+      return JSON.parse(responseText.trim());
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError, "Response was:", responseText);
+      throw new Error("Failed to parse report data as JSON");
+    }
   } catch (error) {
     console.error("Error generating report:", error);
+    // Return fallback data (same as original)
     return {
       summary: "Air quality in Delhi shows concerning levels of PM2.5 over the past year with seasonal variations.",
       averageAQI: 156,
